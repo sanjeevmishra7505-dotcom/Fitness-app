@@ -227,5 +227,162 @@
   renderDiet();
   renderProgress();
   renderSettings();
+  // --- Photo Feature ---
+  // Store photos per day in localStorage (base64)
+  function savePhoto(day, dataUrl){
+    state.days[day] = state.days[day] || {};
+    state.days[day].photo = dataUrl;
+    save();
+  }
+
+  function createPhotoUI(day){
+    const wrap = document.createElement('div'); wrap.className='row';
+    const input = document.createElement('input'); input.type='file'; input.accept='image/*';
+    const preview = document.createElement('img'); preview.style.maxWidth='80px'; preview.style.borderRadius='8px';
+    const saved = state.days[day]?.photo;
+    if(saved){ preview.src = saved; }
+
+    input.onchange = (e)=>{
+      const file = e.target.files[0];
+      if(!file) return;
+      const reader = new FileReader();
+      reader.onload = ()=>{
+        const dataUrl = reader.result;
+        savePhoto(day, dataUrl);
+        preview.src = dataUrl;
+      };
+      reader.readAsDataURL(file);
+    };
+
+    const label = document.createElement('span'); label.className='muted'; label.textContent='Add Photo';
+    wrap.appendChild(input); wrap.appendChild(label); wrap.appendChild(preview);
+    return wrap;
+  }
+
+  // Inject photo UI into tracker cards
+  const _renderTracker = renderTracker;
+  renderTracker = function(){
+    tracker.innerHTML = '';
+    for(let i=1;i<=30;i++){
+      const card = document.createElement('div'); card.className='card';
+      const head = document.createElement('div'); head.className='row';
+      const h = document.createElement('div'); h.innerHTML = `<strong>Day ${i}</strong> <span class='badge'>tap to mark</span>`;
+      const reset = document.createElement('button'); reset.className='btn reset'; reset.textContent='Reset Day';
+      reset.onclick = ()=>{ state.days[i] = {}; save(); renderTracker(); };
+      head.appendChild(h); head.appendChild(reset);
+      card.appendChild(head);
+
+      const row = document.createElement('div'); row.className='row';
+      tasks.forEach((task, idx)=>{
+        const btn = document.createElement('button'); btn.className='btn'; btn.textContent=task;
+        const done = state.days[i]?.[idx]; if(done) btn.classList.add('done');
+        btn.onclick = ()=>{
+          state.days[i] = state.days[i] || {};
+          state.days[i][idx] = !state.days[i][idx];
+          save();
+          btn.classList.toggle('done');
+        };
+        row.appendChild(btn);
+      });
+      card.appendChild(row);
+
+      const pct = Math.round((Object.values(state.days[i]||{}).filter(v=>v===true).length / tasks.length) * 100);
+      const p = document.createElement('div'); p.className='muted'; p.textContent = `Completion: ${isNaN(pct)?0:pct}%`;
+      card.appendChild(p);
+
+      // Photo UI per day
+      card.appendChild(createPhotoUI(i));
+
+      tracker.appendChild(card);
+    }
+  }
+
+  // --- Gallery Tab (show all photos) ---
+  const oldRenderDiet = renderDiet;
+  renderDiet = function(){
+    oldRenderDiet();
+    const g = document.createElement('div'); g.className='card';
+    g.innerHTML = '<h3>📸 Photo Gallery</h3>';
+    const grid = document.createElement('div'); grid.className='row';
+    for(let i=1;i<=30;i++){
+      const ph = state.days[i]?.photo;
+      if(ph){
+        const box = document.createElement('div');
+        box.innerHTML = `<div class='muted'>Day ${i}</div>`;
+        const img = document.createElement('img'); img.src = ph; img.style.maxWidth='120px'; img.style.borderRadius='10px';
+        box.appendChild(img);
+        grid.appendChild(box);
+      }
+    }
+    g.appendChild(grid);
+    diet.appendChild(g);
+  }
+
+  // re-render with new features
+  renderTracker();
+  renderDiet();
+  renderProgress();
+  renderSettings();
+
+
+  // --- Photo Upgrade: Before/After Compare + Side-by-Side ---
+  function renderPhotoUpgrade(){
+    const container = document.createElement('div');
+    container.className='card';
+    container.innerHTML = `<h3>🆚 Before vs After</h3>`;
+
+    const row = document.createElement('div'); row.className='row';
+
+    const sel1 = document.createElement('select');
+    const sel2 = document.createElement('select');
+
+    for(let i=1;i<=30;i++){
+      if(state.days[i]?.photo){
+        const o1 = document.createElement('option'); o1.value=i; o1.textContent=`Day ${i}`;
+        const o2 = document.createElement('option'); o2.value=i; o2.textContent=`Day ${i}`;
+        sel1.appendChild(o1); sel2.appendChild(o2);
+      }
+    }
+
+    const imgWrap = document.createElement('div'); imgWrap.className='row';
+
+    const img1 = document.createElement('img'); img1.style.maxWidth='120px'; img1.style.borderRadius='10px';
+    const img2 = document.createElement('img'); img2.style.maxWidth='120px'; img2.style.borderRadius='10px';
+
+    function updateCompare(){
+      const d1 = sel1.value;
+      const d2 = sel2.value;
+      img1.src = state.days[d1]?.photo || '';
+      img2.src = state.days[d2]?.photo || '';
+    }
+
+    sel1.onchange = updateCompare;
+    sel2.onchange = updateCompare;
+
+    row.appendChild(sel1);
+    row.appendChild(sel2);
+    imgWrap.appendChild(img1);
+    imgWrap.appendChild(img2);
+
+    container.appendChild(row);
+    container.appendChild(imgWrap);
+
+    document.getElementById('progress').appendChild(container);
+    updateCompare();
+  }
+
+  // Call after progress render
+  const _renderProgress = renderProgress;
+  renderProgress = function(){
+    _renderProgress();
+    renderPhotoUpgrade();
+  }
+
+  // re-render again to include upgrade
+  renderTracker();
+  renderDiet();
+  renderProgress();
+  renderSettings();
+
 </script></body>
 </html>
