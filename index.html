@@ -1,0 +1,231 @@
+<!DOCTYPE html><html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>30-Day Body Transformation Tracker (Pro)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    :root{--bg:#0f172a;--card:#111827;--muted:#9ca3af;--accent:#22c55e;--danger:#ef4444}
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu; background:linear-gradient(180deg,#0b1220,#020617); color:#e5e7eb; margin:0}
+    header{position:sticky; top:0; background:rgba(2,6,23,.8); backdrop-filter: blur(8px); padding:12px 16px; border-bottom:1px solid #1f2937}
+    h1{margin:0; font-size:18px}
+    .container{padding:16px; max-width:980px; margin:auto}
+    .tabs{display:flex; gap:8px; margin:12px 0}
+    .tab{flex:1; padding:10px; text-align:center; background:#111827; border-radius:10px; cursor:pointer; border:1px solid #1f2937}
+    .tab.active{background:#1f2937}
+    .card{background:var(--card); border:1px solid #1f2937; border-radius:16px; padding:14px; margin:12px 0; box-shadow:0 10px 20px rgba(0,0,0,.2)}
+    .row{display:flex; gap:8px; flex-wrap:wrap}
+    .btn{padding:8px 10px; border-radius:10px; border:1px solid #374151; background:#020617; color:#e5e7eb; cursor:pointer}
+    .btn.done{background:var(--accent); color:#022c22; border-color:#16a34a}
+    .btn.reset{background:#1f2937}
+    .muted{color:var(--muted)}
+    input,select{background:#020617; border:1px solid #374151; color:#e5e7eb; padding:8px; border-radius:10px}
+    .grid{display:grid; grid-template-columns:repeat(2,1fr); gap:10px}
+    canvas{background:#020617; border-radius:12px}
+    .badge{font-size:12px; padding:4px 8px; border-radius:999px; border:1px solid #374151}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🔥 30-Day Fitness Tracker (Pro)</h1>
+  </header>  <div class="container">
+    <div class="tabs">
+      <div class="tab active" data-tab="tracker">Tracker</div>
+      <div class="tab" data-tab="diet">Diet</div>
+      <div class="tab" data-tab="progress">Progress</div>
+      <div class="tab" data-tab="settings">Settings</div>
+    </div><div id="tracker" class="tabview"></div>
+<div id="diet" class="tabview" style="display:none"></div>
+<div id="progress" class="tabview" style="display:none"></div>
+<div id="settings" class="tabview" style="display:none"></div>
+
+  </div><script>
+  // --- State (localStorage persistence) ---
+  const KEY = 'fitness_tracker_v2';
+  const defaultState = {
+    days: {}, // {1:{0:true,...}}
+    weightLogs: [], // [{date,weight}]
+    settings: { remindTime: '', enableNotify: false }
+  };
+  let state = JSON.parse(localStorage.getItem(KEY) || 'null') || defaultState;
+
+  function save(){ localStorage.setItem(KEY, JSON.stringify(state)); }
+
+  // --- Tabs ---
+  document.querySelectorAll('.tab').forEach(t=>{
+    t.onclick = ()=>{
+      document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+      t.classList.add('active');
+      document.querySelectorAll('.tabview').forEach(v=>v.style.display='none');
+      document.getElementById(t.dataset.tab).style.display='block';
+    }
+  });
+
+  // --- Tracker ---
+  const tasks = [
+    'Workout (45 min)',
+    '8–10k Steps',
+    'No Sugar/Junk',
+    'High Protein Meals',
+    '3–4L Water',
+    '7+ Hours Sleep'
+  ];
+
+  const tracker = document.getElementById('tracker');
+
+  function renderTracker(){
+    tracker.innerHTML = '';
+    for(let i=1;i<=30;i++){
+      const card = document.createElement('div'); card.className='card';
+      const head = document.createElement('div'); head.className='row';
+      const h = document.createElement('div'); h.innerHTML = `<strong>Day ${i}</strong> <span class='badge'>tap to mark</span>`;
+      const reset = document.createElement('button'); reset.className='btn reset'; reset.textContent='Reset Day';
+      reset.onclick = ()=>{ state.days[i] = {}; save(); renderTracker(); };
+      head.appendChild(h); head.appendChild(reset);
+      card.appendChild(head);
+
+      const row = document.createElement('div'); row.className='row';
+      tasks.forEach((task, idx)=>{
+        const btn = document.createElement('button'); btn.className='btn'; btn.textContent=task;
+        const done = state.days[i]?.[idx]; if(done) btn.classList.add('done');
+        btn.onclick = ()=>{
+          state.days[i] = state.days[i] || {};
+          state.days[i][idx] = !state.days[i][idx];
+          save();
+          btn.classList.toggle('done');
+        };
+        row.appendChild(btn);
+      });
+      card.appendChild(row);
+
+      const pct = Math.round((Object.values(state.days[i]||{}).filter(Boolean).length / tasks.length) * 100);
+      const p = document.createElement('div'); p.className='muted'; p.textContent = `Completion: ${isNaN(pct)?0:pct}%`;
+      card.appendChild(p);
+
+      tracker.appendChild(card);
+    }
+  }
+
+  // --- Diet ---
+  const diet = document.getElementById('diet');
+  function renderDiet(){
+    diet.innerHTML = `
+      <div class='card'>
+        <h3>🥗 Fat Loss + Lean Plan</h3>
+        <ul class='muted'>
+          <li>Breakfast: 4 eggs (or 120g paneer) + 1 banana</li>
+          <li>Lunch: 2 roti + dal + sabzi (+ paneer/chicken optional)</li>
+          <li>Evening: fruit + peanuts</li>
+          <li>Dinner: dal/soup/paneer (light, no rice)</li>
+          <li>Water: 3–4L, Sugar: 0</li>
+        </ul>
+      </div>
+      <div class='card'>
+        <h3>💪 Muscle Support Tips</h3>
+        <ul class='muted'>
+          <li>Daily protein focus</li>
+          <li>Don’t skip dinner protein</li>
+          <li>1 cheat meal/week max</li>
+        </ul>
+      </div>
+    `;
+  }
+
+  // --- Progress (weight graph) ---
+  const progress = document.getElementById('progress');
+  function renderProgress(){
+    progress.innerHTML = '';
+    const card = document.createElement('div'); card.className='card';
+    card.innerHTML = `
+      <div class='row'>
+        <input id='wval' type='number' step='0.1' placeholder='Weight (kg)' />
+        <button id='addW' class='btn'>Add</button>
+      </div>
+      <canvas id='chart' width='600' height='260'></canvas>
+      <div class='muted'>Tip: add weight every 3–4 days</div>
+    `;
+    progress.appendChild(card);
+
+    document.getElementById('addW').onclick = ()=>{
+      const v = parseFloat(document.getElementById('wval').value);
+      if(!isNaN(v)){
+        state.weightLogs.push({date: new Date().toISOString().slice(0,10), weight: v});
+        save();
+        drawChart();
+      }
+    };
+
+    function drawChart(){
+      const c = document.getElementById('chart'); const ctx = c.getContext('2d');
+      ctx.clearRect(0,0,c.width,c.height);
+      const data = state.weightLogs;
+      if(!data.length) return;
+      const max = Math.max(...data.map(d=>d.weight));
+      const min = Math.min(...data.map(d=>d.weight));
+      const pad = 20;
+      const w = c.width - pad*2; const h = c.height - pad*2;
+      ctx.beginPath();
+      data.forEach((d,i)=>{
+        const x = pad + (i/(data.length-1||1))*w;
+        const y = pad + (1-(d.weight-min)/((max-min)||1))*h;
+        if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+      });
+      ctx.stroke();
+    }
+
+    drawChart();
+  }
+
+  // --- Settings (reminder) ---
+  const settings = document.getElementById('settings');
+  function renderSettings(){
+    settings.innerHTML = `
+      <div class='card'>
+        <h3>⏰ Daily Reminder</h3>
+        <div class='row'>
+          <input id='time' type='time' />
+          <label class='row' style='align-items:center'>
+            <input id='enable' type='checkbox' /> Enable
+          </label>
+          <button id='saveSet' class='btn'>Save</button>
+        </div>
+        <div class='muted'>Works when this page is open (browser limitation)</div>
+      </div>
+    `;
+
+    const t = document.getElementById('time');
+    const en = document.getElementById('enable');
+    t.value = state.settings.remindTime || '';
+    en.checked = state.settings.enableNotify;
+
+    document.getElementById('saveSet').onclick = ()=>{
+      state.settings.remindTime = t.value;
+      state.settings.enableNotify = en.checked;
+      save();
+      alert('Saved');
+    };
+  }
+
+  function tickReminder(){
+    if(!state.settings.enableNotify || !state.settings.remindTime) return;
+    const now = new Date();
+    const hhmm = now.toTimeString().slice(0,5);
+    if(hhmm === state.settings.remindTime){
+      if(Notification && Notification.permission === 'granted'){
+        new Notification('Workout Time! 🔥', { body: 'Open tracker and complete today\'s tasks.' });
+      }
+    }
+  }
+
+  // Request notification permission once
+  if('Notification' in window && Notification.permission !== 'granted'){
+    Notification.requestPermission();
+  }
+  setInterval(tickReminder, 60*1000);
+
+  // --- Init ---
+  renderTracker();
+  renderDiet();
+  renderProgress();
+  renderSettings();
+</script></body>
+</html>
